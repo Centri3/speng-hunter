@@ -1,0 +1,86 @@
+# speng-hunter
+
+A pretty easy to use macro/script for SpaceEngine, mainly tailored for people wanting to find some of the rarest finds possible (1.000 ESI Earth-likes, High-ESI Minigiants, >1Ms A|B Flips, etc)
+
+## Anti-virus notice
+
+Your anti-virus (probably Defender) will, most likely, go off on this. This is a false positive of course. Windows generally has a tendency to flag anything that messes with the mouse/keyboard (AHK, pyautogui, etc) as a virus, which is what this does here. Simply give it an exception in Defender or whichever anti-virus you use.
+
+## How to use
+
+There are quite a few dumb requirements for this program. So, here's a list of them:
+
+* SE (abbreviation of SpaceEngine) **MUST** be in maximized windowed.
+* Windows' UI Scale must be set to 100%.
+* SE's Screenshot with GUI key must be set to H. There's no real reason for this, it's just tradition.
+* If you wish for speng-hunter to split rare finds from the ordinary, you must have a secondary screenshotting tool open. I and others use [Lightshot](https://app.prntscr.com/en/index.html). Set your "Screenshot Fullscreen" key with Lightshot to CTRL+F12 and it should work fine. This will put rare finds in the last directory Lightshot used, Libraries/Documents/Lightshot by default.
+* You must be in the latest beta for SE. Currently, 0.990.45.1930.
+* If you're on Linux, [run SE and speng-hunter through the same instance of Proton](https://gist.github.com/michaelbutler/f364276f4030c5f449252f2c4d960bd2)
+
+If you've done all that, it should work fine!
+
+Here's all the rare finds speng-hunter will put in Lightshot:
+
+* 0.998+ ESI
+* 1 mass 1 radius
+* High-ESI Minigiants
+* Decent Hyperterrestrials
+* Decent A|B Flips
+* 0.990+ ESI Earth-likes
+
+If you have anything I could add here (within reason), let me know! I'll consider it.
+
+Note that speng-hunter requires you to use good filters, so here's some I recommend for the 6 rare things I listed above:
+
+### 0.998 ESI
+
+Any planet with an ESI above 0.998
+
+* System's main star: White dwarfs or G9s (If you want just 1.000 ESIs or want to contribute to finding the 1.000 ESI Earth-like. Please do)
+* ESI: 0.990 to 1.000 (This is available with my other project, [speng-starb](https://github.com/Centri3/speng-starb))
+
+If you prefer vanilla SE, here's a good alternative, though which is slower:
+
+* Mass: 0.975 to 1.025
+* Radius: 12650 to 12850
+* Temp: -30 to 30
+
+This will skip little to no 0.998+ ESIs, though is quite a bit slower (and you run the chance of skipping a 1.000 ESI).
+
+### 1 mass 1 radius
+
+This is pretty simple.
+
+* System's main star: White dwarfs
+* Mass: 0.995 to 1.005
+* Radius: 12725 to 12775
+
+This should skip 0 1.000s, so if you get lucky, you can also find 1.000s with this!
+
+### High-ESI Minigiants
+
+Minigiants with an ESI above 0.988. Note that these may be impossible, so I wouldn't recommend searching for these
+
+* System's main star: G-types or F-types
+* ESI: 0.990 to 1.000 (You can also do Mass, Radius, and Temp like with 0.998 ESI)
+* Atm pressure: 1000 to inf
+
+### Decent Hyperterrestrials
+
+The first bug here! These are terrestrial planets with a mass above ~31.8Me (though some "weak" ones can be as low as ~15Me), which are thought to be ice giants which have an atm pressure below 1000.
+
+* System's main star: F-giants
+* Mass: 31.8 to inf
+* Atm pressure: 0 to 1000
+
+### Decent A|B Flips
+
+These are binary giant planets with a mass above ~13Mj, which is because SE flips the mass/sma of a binary twice or not at all, rather than once, hence the name.
+
+* System's main star: F-types or above
+* Mass: 4450 to inf
+* Atm pressure: 1000 to inf
+
+### 0.990+ ESI Earth-likes
+
+Pretty self explanatory. Not gonna list good filters here, since they've already been listed in the 0.998 ESIs section! Just make sure to use G9 as System's main star.
