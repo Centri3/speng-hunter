@@ -225,8 +225,6 @@ fn main() {
                     thread::sleep(Duration::from_millis(10))
                 }
 
-                std::env::set_var("RUST_BACKTRACE", "1");
-
                 // This is also vile
                 let class = handler.read::<u32>(selected_object + OBJECT_CLASS);
                 let mass = handler.read::<f32>(selected_object + OBJECT_MASS) * EARTH_MASS;
