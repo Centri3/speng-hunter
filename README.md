@@ -2,6 +2,10 @@
 
 A pretty easy to use macro/script for SpaceEngine, mainly tailored for people wanting to find some of the rarest finds possible (1.000 ESI Earth-likes, High-ESI Minigiants, >1Ms A|B Flips, etc)
 
+## Workshop notice
+
+If you're here from the workshop, to download this, you can navigate to Steam/steamapps/workshop/content/314650/2898001755 and copy speng-hunter.exe to some other location, and run it. Or, you can go to the releases tab, and download the latest version there.
+
 ## Anti-virus notice
 
 Your anti-virus (probably Defender) will, most likely, go off on this. This is a false positive of course. Windows generally has a tendency to flag anything that messes with the mouse/keyboard (AHK, pyautogui, etc) as a virus, which is what this does here. Simply give it an exception in Defender or whichever anti-virus you use.
