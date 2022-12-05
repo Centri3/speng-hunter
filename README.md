@@ -23,6 +23,10 @@ There are quite a few dumb requirements for this program. So, here's a list of t
 
 If you've done all that, it should work fine!
 
+Note that prior to running this, you must have filters and such all ready to go! If not, it will search with the wrong filters, and you'll need to restart it once your filters are correct.
+
+This also moves the mouse around, so it can sometimes be quite difficult to close it. I'd recommend quickly tabbing into the terminal it opens and pressing CTRL+C to close it after it starts a search.
+
 Here's all the rare finds speng-hunter will put in Lightshot:
 
 * 0.998+ ESI
