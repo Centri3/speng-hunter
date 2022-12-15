@@ -92,8 +92,9 @@ fn main() {
             let mut selected_object = handler.read::<usize>(base + SELECTED_OBJECT_POINTER);
 
             // This could mean that the galaxy doesn't exist, or my code is too fast. Skip.
-            // Also, skip any galaxies with a type of Irr or isn't max size
+            // Also, skip any galaxies with a type of E/Irr or isn't max size
             if selected_object == 0usize
+                || (1u32..=8u32).contains(&handler.read::<u32>(selected_object + GALAXY_TYPE))
                 || handler.read::<u32>(selected_object + GALAXY_TYPE) == 16u32
                 || handler.read::<f32>(selected_object + GALAXY_SIZE) != 50000.0f32
             {
