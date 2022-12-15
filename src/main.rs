@@ -54,7 +54,7 @@ const STAR_BROWSER_FILTER_TOGGLE: usize = 0x1029e48;
 const STAR_BROWSER_FILTER_SORT: usize = 0x1027ad0;
 
 // Coordinates offsets
-const GENERIC_OFFSET: i32 = 0xAi32;
+const GENERIC_OFFSET: i32 = 0xai32;
 const FILTER_OFFSET: i32 = 0x6i32;
 const SYSTEMS_OFFSET: i32 = 0x19i32;
 const WINDOWED_OFFSET: i32 = 0x14i32;
@@ -225,8 +225,6 @@ fn main() {
 
                     thread::sleep(Duration::from_millis(10))
                 }
-
-                std::env::set_var("RUST_BACKTRACE", "1");
 
                 // This is also vile
                 let class = handler.read::<u32>(selected_object + OBJECT_CLASS);

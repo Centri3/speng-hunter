@@ -2,6 +2,10 @@
 
 A pretty easy to use macro/script for SpaceEngine, mainly tailored for people wanting to find some of the rarest finds possible (1.000 ESI Earth-likes, High-ESI Minigiants, >1Ms A|B Flips, etc)
 
+## Workshop notice
+
+If you're here from the workshop, to download this, you can navigate to Steam/steamapps/workshop/content/314650/2898001755 and copy speng-hunter.exe to some other location, and run it. Or, you can go to the releases tab, and download the latest version there.
+
 ## Anti-virus notice
 
 Your anti-virus (probably Defender) will, most likely, go off on this. This is a false positive of course. Windows generally has a tendency to flag anything that messes with the mouse/keyboard (AHK, pyautogui, etc) as a virus, which is what this does here. Simply give it an exception in Defender or whichever anti-virus you use.
@@ -18,6 +22,10 @@ There are quite a few dumb requirements for this program. So, here's a list of t
 * If you're on Linux, [run SE and speng-hunter through the same instance of Proton](https://gist.github.com/michaelbutler/f364276f4030c5f449252f2c4d960bd2)
 
 If you've done all that, it should work fine!
+
+Note that prior to running this, you must have filters and such all ready to go! If not, it will search with the wrong filters, and you'll need to restart it once your filters are correct.
+
+This also moves the mouse around, so it can sometimes be quite difficult to close it. I'd recommend quickly tabbing into the terminal it opens and pressing CTRL+C to close it after it starts a search.
 
 Here's all the rare finds speng-hunter will put in Lightshot:
 
