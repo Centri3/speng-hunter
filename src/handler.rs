@@ -87,17 +87,7 @@ impl Handler {
     /// Convenience function to call `write_bytes` with any type implementing
     /// `Pod`, rather than `&[u8]`.
     pub fn write<T: Pod>(&self, buffer: T, base: usize) {
-        let bytes = bytemuck::bytes_of(&buffer);
-
-        unsafe {
-            Debug::WriteProcessMemory(
-                self.inner,
-                base as _,
-                bytes.as_ptr() as _,
-                bytes.len(),
-                None,
-            );
-        }
+        self.write_bytes(bytemuck::bytes_of(&buffer), base);
     }
 
     /// Create and run an SE script.

@@ -75,9 +75,9 @@ fn main() {
         // Not entirely sure how long we need to sleep for, but we need to give SE time
         // to update the currently selected object (Or anything else).
         thread::sleep(Duration::from_millis(160u64));
-        // Generate a random galaxy
-
+        
         'inner: loop {
+            // Generate a random galaxy
             let level = rng.gen_range(1u32..9u32);
             let block = rng.gen_range(0u32..8u32.pow(level));
             let number = rng.gen_range(0u32..2500u32);
