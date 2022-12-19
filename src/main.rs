@@ -168,7 +168,9 @@ fn main() {
 
             enigo.mouse_click(MouseButton::Left);
 
-            thread::sleep(Duration::from_millis(160u64));
+            // Wait 3 seconds, I don't know why but the Star browser has gotten even bugger
+            // in the newest build, and I must do this or else it breaks...
+            thread::sleep(Duration::from_millis(3000u64));
 
             let start = Instant::now();
             let mut systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
@@ -189,7 +191,7 @@ fn main() {
             }
 
             // Double-click filter toggle
-            
+
             enigo.mouse_move_to(filter_toggle.0, filter_toggle.1);
 
             for _ in 0u32..=1u32 {
@@ -287,7 +289,8 @@ fn main() {
 
                 enigo.key_click(Key::Layout('h'));
 
-                // Sometimes, SE fails to take a screenshot saying "Please wait...", So we're gonna wait!
+                // Sometimes, SE fails to take a screenshot saying "Please wait...", So we're
+                // gonna wait!
                 thread::sleep(Duration::from_millis(160u64));
             }
 
