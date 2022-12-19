@@ -16,7 +16,8 @@ use {
 
 // Earth constants
 const EARTH_MASS: f32 = 5.9724e+24f32;
-const EARTH_EQUAT_RADIUS: f32 = 6378.14f32;
+// Good on you, Vladimir!
+// const EARTH_EQUAT_RADIUS: f32 = 6378.14f32;
 const EARTH_MEAN_RADIUS: f32 = 6371.0f32;
 const EARTH_DENSITY: f32 = 5.51363f32;
 const EARTH_GRAVITY: f32 = 9.80665f32;
@@ -25,15 +26,15 @@ const EARTH_AVG_TEMP: f32 = 288.0f32;
 
 // Address to the code of the selected object.
 // Example: RS 0-3-397-1581-20880-7-556321-30 A3. Go visit it yourself! (:
-const SELECTED_OBJECT_CODE: usize = 0x19a9ea0usize;
+const SELECTED_OBJECT_CODE: usize = 0x19a9e40usize;
 // Pointer to the parameters of the selected object.
-const SELECTED_OBJECT_POINTER: usize = 0x19a9f20usize;
+const SELECTED_OBJECT_POINTER: usize = 0x19a9ec0usize;
 // Address to the number of Systems found.
-const STAR_BROWSER_SYSTEMS_FOUND: usize = 0x1024178usize;
+const STAR_BROWSER_SYSTEMS_FOUND: usize = 0x1024118usize;
 // Address to whether the Star browser is currently searching.
-const STAR_BROWSER_SEARCHING: usize = 0x104a1e1usize;
+const STAR_BROWSER_SEARCHING: usize = 0x104a181usize;
 // Address to SE's current GUI scale.
-const GUI_SCALE: usize = 0xe69494;
+const GUI_SCALE: usize = 0xe69434;
 
 // Offsets from SELECTED_OBJECT_POINTER
 const OBJECT_CLASS: usize = 0x34usize;
@@ -48,10 +49,10 @@ const GALAXY_SIZE: usize = 0x20usize;
 
 // Coordinates to some GUI elements.
 // These are always the same whenever ran, despite being initialized at runtime.
-const STAR_BROWSER_SEARCH_BUTTON: usize = 0x1025ad8;
-const STAR_BROWSER_CLEAR_BUTTON: usize = 0x1025dc0;
-const STAR_BROWSER_FILTER_TOGGLE: usize = 0x1029e48;
-const STAR_BROWSER_FILTER_SORT: usize = 0x1027ad0;
+const STAR_BROWSER_SEARCH_BUTTON: usize = 0x1025a78;
+const STAR_BROWSER_CLEAR_BUTTON: usize = 0x1025d60;
+const STAR_BROWSER_FILTER_TOGGLE: usize = 0x1029de8;
+const STAR_BROWSER_FILTER_SORT: usize = 0x1027a70;
 
 // Coordinates offsets
 const GENERIC_OFFSET: i32 = 0xai32;
@@ -75,7 +76,7 @@ fn main() {
         // Not entirely sure how long we need to sleep for, but we need to give SE time
         // to update the currently selected object (Or anything else).
         thread::sleep(Duration::from_millis(160u64));
-        
+
         'inner: loop {
             // Generate a random galaxy
             let level = rng.gen_range(1u32..9u32);
@@ -188,7 +189,7 @@ fn main() {
             }
 
             // Double-click filter toggle
-
+            
             enigo.mouse_move_to(filter_toggle.0, filter_toggle.1);
 
             for _ in 0u32..=1u32 {
@@ -241,7 +242,7 @@ fn main() {
                     * EARTH_GRAVITY;
 
                 let density = mass * 1.0e-12f32 / (4.0f32 / 3.0f32 * PI * mean_radius.powi(3i32));
-                let esc_vel = f32::sqrt(2.0f32 * gravity * equat_radius * 1000.0f32) * 0.001f32;
+                let esc_vel = f32::sqrt(2.0f32 * gravity * mean_radius * 1000.0f32) * 0.001f32;
 
                 let n = 1.0f32 / 4.0f32;
 
@@ -249,8 +250,7 @@ fn main() {
                 // enough.
                 let esi = f32::powf(
                     1.0f32
-                        - ((equat_radius - EARTH_EQUAT_RADIUS)
-                            / (equat_radius + EARTH_EQUAT_RADIUS))
+                        - ((mean_radius - EARTH_MEAN_RADIUS) / (mean_radius + EARTH_MEAN_RADIUS))
                             .abs(),
                     0.57f32 * n,
                 ) * f32::powf(
@@ -286,6 +286,9 @@ fn main() {
                 }
 
                 enigo.key_click(Key::Layout('h'));
+
+                // Sometimes, SE fails to take a screenshot saying "Please wait...", So we're gonna wait!
+                thread::sleep(Duration::from_millis(160u64));
             }
 
             break 'inner;
