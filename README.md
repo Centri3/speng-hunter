@@ -18,7 +18,7 @@ There are quite a few dumb requirements for this program. So, here's a list of t
 * Windows' UI Scale must be set to 100%.
 * SE's Screenshot with GUI key must be set to H. There's no real reason for this, it's just tradition.
 * If you wish for speng-hunter to split rare finds from the ordinary, you must have a secondary screenshotting tool open. I and others use [Lightshot](https://app.prntscr.com/en/index.html). Set your "Screenshot Fullscreen" key with Lightshot to CTRL+F12 and it should work fine. This will put rare finds in the last directory Lightshot used, Libraries/Documents/Lightshot by default.
-* You must be in the latest beta for SE. Currently, 0.990.45.1930.
+* You must be in the latest stable release for SE. Currently, 0.990.45.1945.
 * If you're on Linux, [run SE and speng-hunter through the same instance of Proton](https://gist.github.com/michaelbutler/f364276f4030c5f449252f2c4d960bd2)
 
 If you've done all that, it should work fine!
