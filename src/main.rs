@@ -37,7 +37,8 @@ const STAR_BROWSER_SEARCHING: usize = 0x104a181usize;
 const GUI_SCALE: usize = 0xe69434;
 
 // Offsets from SELECTED_OBJECT_POINTER
-const OBJECT_CLASS: usize = 0x34usize;
+const OBJECT_VOL_CLASS: usize = 0x34usize;
+const OBJECT_BULK_CLASS: usize = 0x3cusize;
 const OBJECT_MASS: usize = 0x11f8usize;
 const OBJECT_EQUAT_RADIUS: usize = 0x1ca4usize;
 const OBJECT_AVG_TEMP: usize = 0x1248usize;
@@ -230,7 +231,8 @@ fn main() {
                 }
 
                 // This is also vile
-                let class = handler.read::<u32>(selected_object + OBJECT_CLASS);
+                let vol_class = handler.read::<u32>(selected_object + OBJECT_VOL_CLASS);
+                let bulk_class = handler.read::<u32>(selected_object + OBJECT_BULK_CLASS);
                 let mass = handler.read::<f32>(selected_object + OBJECT_MASS) * EARTH_MASS;
                 let equat_radius = handler.read::<f32>(selected_object + OBJECT_EQUAT_RADIUS);
                 let avg_temp = handler.read::<f32>(selected_object + OBJECT_AVG_TEMP);
@@ -275,12 +277,12 @@ fn main() {
                 if esi > 0.9975f32
                     || (0.999995f32..1.00005f32).contains(&mass)
                         && (6370.97f32..6371.31f32).contains(&equat_radius)
-                    || esi > 0.9875 && atm_pressure > 1000.0f32
+                    || esi > 0.9875 && bulk_class == 5u32
                     || mass / EARTH_MASS > 60.0f32 && atm_pressure < 1000.0f32
                     || mass / EARTH_MASS > 25537.0f32 && atm_pressure > 1000.0f32
                     || esi > 0.9895f32
                         && (life == 1703936u32 || life == 1075445760u32)
-                        && class == 3u32
+                        && vol_class == 3u32
                 {
                     enigo.key_down(Key::Control);
                     enigo.key_click(Key::F12);
