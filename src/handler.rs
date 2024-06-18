@@ -6,7 +6,7 @@ use {
     },
     sysinfo::{PidExt, ProcessExt, System, SystemExt},
     windows::Win32::{
-        Foundation::{BOOL, HANDLE, HWND, LPARAM, WPARAM},
+        Foundation::{BOOL, GetLastError, HANDLE, HWND, LPARAM, WPARAM},
         System::{Diagnostics::Debug, ProcessStatus, Threading},
         UI::WindowsAndMessaging::{
             EnumWindows, GetWindowTextLengthW, GetWindowTextW, SendMessageW, WM_LBUTTONDOWN,
@@ -50,16 +50,14 @@ impl Handler {
                 .unwrap()
                 .contains("SpaceEngine")
             {
-                WINDOW_HWND.set(hwnd).unwrap();
-
-                return BOOL::from(false);
+                WINDOW_HWND.set(hwnd);
             }
 
             return BOOL::from(true);
         }
 
         unsafe {
-            EnumWindows(Some(enum_window), LPARAM(0isize));
+            EnumWindows(Some(enum_window), LPARAM(0isize)).unwrap();
         }
 
         Self {
@@ -133,8 +131,8 @@ impl Handler {
                 WM_LBUTTONDOWN,
                 WPARAM(0usize),
                 LPARAM(isize::overflowing_shl(y as isize, 16).0 | (x & 0xFFFF) as isize),
-            );
-        }
+            )
+        };
 
         unsafe {
             SendMessageW(
