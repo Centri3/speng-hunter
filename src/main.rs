@@ -1,14 +1,12 @@
-// Note that you MUST build on Rust 1.63.0!!! Enigo SUCKS (not really) and is
-// broken on 1.64.0 and above but I don't want to rewrite for rdev or similar...
-
 mod handler;
 
 use {
-    enigo::{Enigo, Key, KeyboardControllable, MouseButton, MouseControllable},
     handler::Handler,
     rand::Rng,
     std::{
         f32::consts::PI,
+        fs::{self, File},
+        io::{Read, Write},
         thread,
         time::{Duration, Instant},
     },
@@ -33,6 +31,9 @@ const SELECTED_OBJECT_POINTER: usize = 0x19a9ec0usize;
 const STAR_BROWSER_SYSTEMS_FOUND: usize = 0x1024118usize;
 // Address to whether the Star browser is currently searching.
 const STAR_BROWSER_SEARCHING: usize = 0x104a181usize;
+// Address to the Star browser's current search radius.
+const STAR_BROWSER_SEARCH_RADIUS: usize = 0x1024100usize;
+const STAR_BROWSER_STAR_LIST_LEN: usize = 0x102410Cusize;
 // Address to SE's current GUI scale.
 const GUI_SCALE: usize = 0xe69434;
 
@@ -45,6 +46,10 @@ const OBJECT_AVG_TEMP: usize = 0x1248usize;
 const OBJECT_OBLATENESS: usize = 0x120cusize;
 const OBJECT_LIFE: usize = 0x11bcusize;
 const OBJECT_ATM_PRESSURE: usize = 0x17d8usize;
+const OBJECT_HYDROSPHERE_DEPTH: usize = 0x15a0usize;
+const OBJECT_HYDROSPHERE_ELEMENT_O2: usize = 0x14dcusize;
+const OBJECT_HYDROSPHERE_SUM_OF_ELEMENTS: usize = 0x1590usize;
+const OBJECT_BITFLAGS: usize = 0x11C0usize;
 const GALAXY_TYPE: usize = 0x8usize;
 const GALAXY_SIZE: usize = 0x20usize;
 
@@ -59,23 +64,23 @@ const STAR_BROWSER_FILTER_SORT: usize = 0x1027a70;
 const GENERIC_OFFSET: i32 = 0xai32;
 const FILTER_OFFSET: i32 = 0x6i32;
 const SYSTEMS_OFFSET: i32 = 0x19i32;
-const WINDOWED_OFFSET: i32 = 0x14i32;
 
 fn main() {
     let handler = Handler::new();
     let mut rng = rand::thread_rng();
-    let mut enigo = Enigo::new();
 
     // This is easier to write 1000 times.
     let base = handler.base();
+
+    let mut log = File::create("hunter.log").unwrap();
 
     loop {
         // Select RG 0-3-397-1581, this is so we can reset the code of the currently
         // selected object. If we don't do this, it'll select nothing.
         handler.run_script("select_rg_397.se", "Select \"RG 0-3-397-1581\"".as_bytes());
 
-        // Not entirely sure how long we need to sleep for, but we need to give SE time
-        // to update the currently selected object (Or anything else).
+        // Not entirely sure how long we need to sleep for, but hwe need to give SE time
+        // to update the currently selected object (Or anything helse).
         thread::sleep(Duration::from_millis(160u64));
 
         'inner: loop {
@@ -106,7 +111,7 @@ fn main() {
             let lat = rng.gen_range(-180.0f32..180.0f32);
             // todo!(); if Systems found reducing is fixed, then up max to 0.625. Currently
             // stars aren't dense enough that far out for 100K systems to work
-            let dist = rng.gen_range(0.0625f32..0.125f32);
+            let dist = rng.gen_range(0.25f32..0.625f32);
 
             handler.run_script(
                 "goto.se",
@@ -121,53 +126,45 @@ fn main() {
                 format!("Goto {{ DistRad {} Time 0 }}", dist).as_bytes(),
             );
 
+            thread::sleep(Duration::from_millis(160u64));
+
             // This is vile
             let gui_scale = handler.read::<f32>(base + GUI_SCALE);
             let search_button = (
                 (handler.read::<f32>(base + STAR_BROWSER_SEARCH_BUTTON) * gui_scale) as i32
                     + GENERIC_OFFSET,
                 (handler.read::<f32>(base + STAR_BROWSER_SEARCH_BUTTON + 0x4) * gui_scale) as i32
-                    + GENERIC_OFFSET
-                    + WINDOWED_OFFSET,
+                    + GENERIC_OFFSET,
             );
             let clear_button = (
                 (handler.read::<f32>(base + STAR_BROWSER_CLEAR_BUTTON) * gui_scale) as i32
                     + GENERIC_OFFSET,
                 (handler.read::<f32>(base + STAR_BROWSER_CLEAR_BUTTON + 0x4) * gui_scale) as i32
-                    + GENERIC_OFFSET
-                    + WINDOWED_OFFSET,
+                    + GENERIC_OFFSET,
             );
             let filter_toggle = (
                 (handler.read::<f32>(base + STAR_BROWSER_FILTER_TOGGLE) * gui_scale) as i32
                     + GENERIC_OFFSET,
                 (handler.read::<f32>(base + STAR_BROWSER_FILTER_TOGGLE + 0x4) * gui_scale) as i32
-                    + GENERIC_OFFSET
-                    + WINDOWED_OFFSET,
+                    + GENERIC_OFFSET,
             );
             let filter_sort = (
                 (handler.read::<f32>(base + STAR_BROWSER_FILTER_SORT) * gui_scale) as i32
                     + GENERIC_OFFSET,
                 (handler.read::<f32>(base + STAR_BROWSER_FILTER_SORT + 0x4) * gui_scale) as i32
-                    + GENERIC_OFFSET
-                    + WINDOWED_OFFSET,
+                    + GENERIC_OFFSET,
             );
 
             // Click clear button 3 times, otherwise it'll sometimes not clear the search
             // properly
 
             for _ in 0u32..=2u32 {
-                enigo.mouse_move_to(clear_button.0, clear_button.1);
-
-                enigo.mouse_click(MouseButton::Left);
-
-                thread::sleep(Duration::from_millis(160u64));
+                handler.click(clear_button.0, clear_button.1);
             }
 
             // Click search button
 
-            enigo.mouse_move_to(search_button.0, search_button.1);
-
-            enigo.mouse_click(MouseButton::Left);
+            handler.click(search_button.0, search_button.1);
 
             // Wait 3 seconds, I don't know why but the Star browser has gotten even bugger
             // in the newest build, and I must do this or else it breaks...
@@ -181,11 +178,7 @@ fn main() {
 
                 // Stop waiting after 180s or once Systems found > 22.
                 if start.elapsed() == Duration::from_secs(180u64) || systems_found > 22i32 {
-                    enigo.mouse_move_to(clear_button.0, clear_button.1);
-
-                    enigo.mouse_click(MouseButton::Left);
-
-                    thread::sleep(Duration::from_millis(160u64));
+                    handler.click(clear_button.0, clear_button.1);
 
                     break;
                 }
@@ -193,30 +186,20 @@ fn main() {
 
             // Double-click filter toggle
 
-            enigo.mouse_move_to(filter_toggle.0, filter_toggle.1);
-
             for _ in 0u32..=1u32 {
-                enigo.mouse_click(MouseButton::Left)
+                handler.click(filter_toggle.0, filter_toggle.1)
             }
-
-            thread::sleep(Duration::from_millis(160u64));
 
             // Move to filter
 
-            enigo.mouse_move_to(filter_sort.0, filter_sort.1);
-
-            thread::sleep(Duration::from_millis(160u64));
+            handler.click(filter_sort.0, filter_sort.1);
 
             // Check each system
             for i in 0i32..=i32::min(systems_found - 1i32, 21i32) {
-                enigo.mouse_move_to(
+                handler.click(
                     filter_sort.0,
                     filter_sort.1 + FILTER_OFFSET + (i + 1i32) * SYSTEMS_OFFSET,
                 );
-
-                enigo.mouse_click(MouseButton::Left);
-
-                thread::sleep(Duration::from_millis(160u64));
 
                 // Reinitialize selected_object. For some reason, some objects refuse to give
                 // their parameters sometimes, so retry until it works.
@@ -226,8 +209,6 @@ fn main() {
                     if selected_object != 0usize {
                         break;
                     }
-
-                    thread::sleep(Duration::from_millis(10))
                 }
 
                 // This is also vile
@@ -239,6 +220,15 @@ fn main() {
                 let oblateness = handler.read::<f32>(selected_object + OBJECT_OBLATENESS);
                 let life = handler.read::<u32>(selected_object + OBJECT_LIFE);
                 let atm_pressure = handler.read::<f32>(selected_object + OBJECT_ATM_PRESSURE);
+                let hydrosphere_depth =
+                    handler.read::<f32>(selected_object + OBJECT_HYDROSPHERE_DEPTH);
+                let hydrosphere_element_o2 =
+                    handler.read::<f32>(selected_object + OBJECT_HYDROSPHERE_ELEMENT_O2);
+                let hydrosphere_sum_of_elements =
+                    handler.read::<f32>(selected_object + OBJECT_HYDROSPHERE_SUM_OF_ELEMENTS);
+                let is_a = handler.read::<u32>(selected_object + OBJECT_BITFLAGS) & 0x020000000;
+                let b_vol_class = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_VOL_CLASS);
+                let b_life = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_LIFE);
 
                 let polar_radius = equat_radius * (1.0f32 - oblateness);
                 let mean_radius = f32::cbrt(equat_radius.powi(2i32) * polar_radius);
@@ -268,28 +258,53 @@ fn main() {
                     5.58f32 * n,
                 );
 
-                // 0.998+ ESI,
+                handler.run_script("get_name.se", "PrintNames true".as_bytes());
+
+                thread::sleep(Duration::from_millis(160));
+
+                let mut path = handler.exe.as_path().to_path_buf();
+                path.set_file_name("se.log");
+
+                let code = fs::read_to_string(path)
+                    .unwrap()
+                    .rsplit_once("Body full def:")
+                    .unwrap()
+                    .1
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .to_owned()
+                    .trim()
+                    .to_owned();
+
+                // 0.999+ ESI,
                 // 1 mass 1 radius,
                 // 0.988+ ESI minigiant,
                 // decent Hyperterrestrial,
                 // decent A|B Flip,
-                // and 0.990+ ESI Earth-like.
-                if esi > 0.9975f32
+                // 0.996+ ESI earth-like,
+                // decent O2 oceans,
+                // and binary earth-likes.
+                if esi > 0.9985f32
                     || (0.999995f32..1.00005f32).contains(&mass)
-                        && (6370.97f32..6371.31f32).contains(&equat_radius)
+                        && (6370.97f32..6371.31f32).contains(&mean_radius)
                     || esi > 0.9875 && bulk_class == 5u32
                     || mass / EARTH_MASS > 60.0f32 && atm_pressure < 1000.0f32
                     || mass / EARTH_MASS > 25537.0f32 && atm_pressure > 1000.0f32
                     || esi > 0.9895f32
                         && (life == 1703936u32 || life == 1075445760u32)
                         && vol_class == 3u32
+                    || hydrosphere_depth > 6.0f32
+                        && (hydrosphere_sum_of_elements / hydrosphere_element_o2) > 0.2f32
+                    || is_a == 1
+                        && (life == 1703936u32 || life == 1075445760u32)
+                        && (vol_class >= 3 || b_vol_class >= 3)
+                        && (b_life == 1703936u32 || b_life == 1075445760u32)
                 {
-                    enigo.key_down(Key::Control);
-                    enigo.key_click(Key::F12);
-                    enigo.key_up(Key::Control);
+                    writeln!(log, "RARE: {}", code.to_owned());
                 }
 
-                enigo.key_click(Key::Layout('h'));
+                writeln!(log, "COMMON: {}", code.to_owned());
 
                 // Sometimes, SE fails to take a screenshot saying "Please wait...", So we're
                 // gonna wait!

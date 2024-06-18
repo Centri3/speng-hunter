@@ -1,16 +1,24 @@
 use {
     bytemuck::Pod,
-    std::{env, fs::File, io::Write, mem, path::PathBuf, process::Command},
+    std::{
+        env, ffi::OsString, fs::File, io::Write, mem, os::windows::ffi::OsStringExt, path::PathBuf,
+        process::Command, sync::OnceLock, thread, time::Duration,
+    },
     sysinfo::{PidExt, ProcessExt, System, SystemExt},
     windows::Win32::{
-        Foundation::HANDLE,
+        Foundation::{BOOL, HANDLE, HWND, LPARAM, WPARAM},
         System::{Diagnostics::Debug, ProcessStatus, Threading},
+        UI::WindowsAndMessaging::{
+            EnumWindows, GetWindowTextLengthW, GetWindowTextW, SendMessageW, WM_LBUTTONDOWN,
+            WM_LBUTTONUP, WNDENUMPROC,
+        },
     },
 };
 
 pub struct Handler {
-    inner: HANDLE,
-    exe: PathBuf,
+    h: HANDLE,
+    hwnd: HWND,
+    pub exe: PathBuf,
 }
 
 impl Handler {
@@ -29,8 +37,34 @@ impl Handler {
         }
         .expect("failed to open handle to SpaceEngine.exe");
 
+        static WINDOW_HWND: OnceLock<HWND> = OnceLock::new();
+
+        unsafe extern "system" fn enum_window(hwnd: HWND, _: LPARAM) -> BOOL {
+            let length = GetWindowTextLengthW(hwnd);
+            let mut bytes = vec![0u16; length as usize];
+
+            GetWindowTextW(hwnd, &mut bytes);
+
+            if OsString::from_wide(&bytes)
+                .into_string()
+                .unwrap()
+                .contains("SpaceEngine")
+            {
+                WINDOW_HWND.set(hwnd).unwrap();
+
+                return BOOL::from(false);
+            }
+
+            return BOOL::from(true);
+        }
+
+        unsafe {
+            EnumWindows(Some(enum_window), LPARAM(0isize));
+        }
+
         Self {
-            inner: handle,
+            h: handle,
+            hwnd: *WINDOW_HWND.get().unwrap(),
             exe: process.exe().to_path_buf(),
         }
     }
@@ -40,7 +74,7 @@ impl Handler {
 
         unsafe {
             ProcessStatus::K32EnumProcessModules(
-                self.inner,
+                self.h,
                 base.as_ptr() as _,
                 mem::size_of_val(&base) as _,
                 &mut 0u32,
@@ -54,13 +88,7 @@ impl Handler {
         let bytes = vec![0u8; size];
 
         unsafe {
-            Debug::ReadProcessMemory(
-                self.inner,
-                base as _,
-                bytes.as_ptr() as _,
-                bytes.len(),
-                None,
-            );
+            Debug::ReadProcessMemory(self.h, base as _, bytes.as_ptr() as _, bytes.len(), None);
         }
 
         bytes.to_vec()
@@ -74,13 +102,7 @@ impl Handler {
 
     pub fn write_bytes(&self, bytes: &[u8], base: usize) {
         unsafe {
-            Debug::WriteProcessMemory(
-                self.inner,
-                base as _,
-                bytes.as_ptr() as _,
-                bytes.len(),
-                None,
-            );
+            Debug::WriteProcessMemory(self.h, base as _, bytes.as_ptr() as _, bytes.len(), None);
         }
     }
 
@@ -101,5 +123,26 @@ impl Handler {
             .unwrap_or_else(|_| panic!("failed to write to script `{}`", name));
 
         Command::new(self.exe.clone()).arg(path).spawn().unwrap();
+    }
+
+    /// Click by sending a message.
+    pub fn click(&self, x: i32, y: i32) {
+        unsafe {
+            SendMessageW(
+                self.hwnd,
+                WM_LBUTTONDOWN,
+                WPARAM(0usize),
+                LPARAM(isize::overflowing_shl(y as isize, 16).0 | (x & 0xFFFF) as isize),
+            );
+        }
+
+        unsafe {
+            SendMessageW(
+                self.hwnd,
+                WM_LBUTTONUP,
+                WPARAM(0usize),
+                LPARAM(isize::overflowing_shl(y as isize, 16).0 | (x & 0xFFFF) as isize),
+            )
+        };
     }
 }
