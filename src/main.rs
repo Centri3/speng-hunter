@@ -260,7 +260,7 @@ fn main() {
 
                 handler.run_script("get_name.se", "PrintNames true".as_bytes());
 
-                thread::sleep(Duration::from_millis(160));
+                thread::sleep(Duration::from_millis(500));
 
                 let mut path = handler.exe.as_path().to_path_buf();
                 path.set_file_name("se.log");
