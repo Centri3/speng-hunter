@@ -282,7 +282,7 @@ fn main() {
                 // 0.988+ ESI minigiant,
                 // decent Hyperterrestrial,
                 // decent A|B Flip,
-                // 0.996+ ESI earth-like,
+                // 0.990+ ESI earth-like,
                 // decent O2 oceans,
                 // and binary earth-likes.
                 if esi > 0.9985f32

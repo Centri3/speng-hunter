@@ -14,11 +14,8 @@ Your anti-virus (probably Defender) will, most likely, go off on this. This is a
 
 There are quite a few dumb requirements for this program. So, here's a list of them:
 
-* SE (abbreviation of SpaceEngine) **MUST** be in maximized windowed.
-* Windows' UI Scale must be set to 100%.
-* SE's Screenshot with GUI key must be set to H. There's no real reason for this, it's just tradition.
-* If you wish for speng-hunter to split rare finds from the ordinary, you must have a secondary screenshotting tool open. I and others use [Lightshot](https://app.prntscr.com/en/index.html). Set your "Screenshot Fullscreen" key with Lightshot to CTRL+F12 and it should work fine. This will put rare finds in the last directory Lightshot used, Libraries/Documents/Lightshot by default.
-* You must be in the latest stable release for SE. Currently, 0.990.45.1945.
+* SE (abbreviation of SpaceEngine)'s main window should be as small as possible
+* You must be running specifically version 0.990.45.1945.
 * If you're on Linux, [run SE and speng-hunter through the same instance of Proton](https://gist.github.com/michaelbutler/f364276f4030c5f449252f2c4d960bd2)
 
 If you've done all that, it should work fine!
@@ -27,18 +24,20 @@ Note that prior to running this, you must have filters and such all ready to go!
 
 This also moves the mouse around, so it can sometimes be quite difficult to close it. I'd recommend quickly tabbing into the terminal it opens and pressing CTRL+C to close it after it starts a search.
 
-Here's all the rare finds speng-hunter will put in Lightshot:
+Here's all the rare finds speng-hunter will log as "rare":
 
 * 0.998+ ESI
 * 1 mass 1 radius
-* High-ESI Minigiants
-* Decent Hyperterrestrials
-* Decent A|B Flips
-* 0.990+ ESI Earth-likes
+* High-ESI minigiants
+* Decent hyperterrestrials
+* Decent A|B flips
+* 0.990+ ESI earth-likes
+* 6km+ deep O2 oceans
+* Binary earth-likes (if I can fix this check)
 
 If you have anything I could add here (within reason), let me know! I'll consider it.
 
-Note that speng-hunter requires you to use good filters, so here's some I recommend for the 6 rare things I listed above:
+Note that speng-hunter requires you to use good filters, so here's some I recommend for the 8 rare things I listed above:
 
 ### 0.998 ESI
 
