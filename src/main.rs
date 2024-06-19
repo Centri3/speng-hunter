@@ -325,20 +325,22 @@ fn main() {
                         log,
                         r#"RARE: {code}
 ESI: {esi}
-MASS: {mass}
-HYDROSPHERE_DEPTH: {hydrosphere_depth}"#
+MASS: {}
+HYDROSPHERE_DEPTH: {hydrosphere_depth}"#,
+                        mass / EARTH_MASS
                     );
-                };
-                writeln!(
-                    log,
-                    r#"COMMON: {code}
+                } else {
+                    writeln!(
+                        log,
+                        r#"COMMON: {code}
 ESI: {esi}
-MASS: {mass};
-
-                "#
-                );
+MASS: {}
+HYDROSPHERE_DEPTH: {hydrosphere_depth}"#,
+                        mass / EARTH_MASS
+                    );
+                }
+                break 'inner;
             }
-            break 'inner;
         }
     }
 }
