@@ -27,6 +27,7 @@ const EARTH_AVG_TEMP: f32 = 288.0f32;
 const SELECTED_OBJECT_CODE: usize = 0x19a9e40usize;
 // Pointer to the parameters of the selected object.
 const SELECTED_OBJECT_POINTER: usize = 0x19a9ec0usize;
+const SELECTED_SYSTEM_POINTER: usize = 0x19a9ec8usize;
 // Address to the number of Systems found.
 const STAR_BROWSER_SYSTEMS_FOUND: usize = 0x1024118usize;
 // Address to whether the Star browser is currently searching.
@@ -211,8 +212,6 @@ fn main() {
                     }
                 }
 
-                let num_planets = handler.read::<u32>(selected_object + 0xB4);
-
                 thread::sleep(Duration::from_millis(160));
 
                 handler.click(
@@ -248,6 +247,8 @@ fn main() {
                 let is_a = handler.read::<u32>(selected_object + OBJECT_BITFLAGS) & 0x020000000;
                 let b_vol_class = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_VOL_CLASS);
                 let b_life = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_LIFE);
+                let system = handler.read::<usize>(base + SELECTED_SYSTEM_POINTER);
+                let num_planets = handler.read::<u32>(system + 0xB4);
 
                 let polar_radius = equat_radius * (1.0f32 - oblateness);
                 let mean_radius = f32::cbrt(equat_radius.powi(2i32) * polar_radius);
@@ -325,6 +326,7 @@ MASS: {}
 RADIUS: {mean_radius}
 HYDROSPHERE_DEPTH: {hydrosphere_depth}
 LIFE: {life}
+PLANET_COUNT: {num_planets}
 "#,
                         mass / EARTH_MASS
                     );
@@ -337,6 +339,7 @@ MASS: {}
 RADIUS: {mean_radius}
 HYDROSPHERE_DEPTH: {hydrosphere_depth}
 LIFE: {life}
+PLANET_COUNT: {num_planets}
 "#,
                         mass / EARTH_MASS
                     );
