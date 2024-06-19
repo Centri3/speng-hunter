@@ -6,7 +6,7 @@ use {
     },
     sysinfo::{PidExt, ProcessExt, System, SystemExt},
     windows::Win32::{
-        Foundation::{BOOL, GetLastError, HANDLE, HWND, LPARAM, WPARAM},
+        Foundation::{GetLastError, BOOL, HANDLE, HWND, LPARAM, WPARAM},
         System::{Diagnostics::Debug, ProcessStatus, Threading},
         UI::WindowsAndMessaging::{
             EnumWindows, GetWindowTextLengthW, GetWindowTextW, SendMessageW, WM_LBUTTONDOWN,

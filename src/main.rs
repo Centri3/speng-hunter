@@ -197,6 +197,25 @@ fn main() {
             // Check each system
             for i in 0i32..=i32::min(systems_found - 1i32, 21i32) {
                 handler.click(
+                    filter_sort.0 - 0x40,
+                    filter_sort.1 + (i + 1i32) * SYSTEMS_OFFSET,
+                );
+
+                // Reinitialize selected_object. For some reason, some objects refuse to give
+                // their parameters sometimes, so retry until it works.
+                for _ in 0u32..100u32 {
+                    selected_object = handler.read::<usize>(base + SELECTED_OBJECT_POINTER);
+
+                    if selected_object != 0usize {
+                        break;
+                    }
+                }
+
+                let num_planets = handler.read::<u32>(selected_object + 0xB4);
+
+                thread::sleep(Duration::from_millis(500));
+
+                handler.click(
                     filter_sort.0,
                     filter_sort.1 + FILTER_OFFSET + (i + 1i32) * SYSTEMS_OFFSET,
                 );
@@ -300,17 +319,25 @@ fn main() {
                         && (life == 1703936u32 || life == 1075445760u32)
                         && (vol_class >= 3 || b_vol_class >= 3)
                         && (b_life == 1703936u32 || b_life == 1075445760u32)
+                    || num_planets > 38
                 {
-                    writeln!(log, "RARE: {}", code.to_owned());
-                }
+                    writeln!(
+                        log,
+                        r#"RARE: {code}
+ESI: {esi}
+MASS: {mass}
+HYDROSPHERE_DEPTH: {hydrosphere_depth}"#
+                    );
+                };
+                writeln!(
+                    log,
+                    r#"COMMON: {code}
+ESI: {esi}
+MASS: {mass};
 
-                writeln!(log, "COMMON: {}", code.to_owned());
-
-                // Sometimes, SE fails to take a screenshot saying "Please wait...", So we're
-                // gonna wait!
-                thread::sleep(Duration::from_millis(160u64));
+                "#
+                );
             }
-
             break 'inner;
         }
     }
