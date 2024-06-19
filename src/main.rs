@@ -213,7 +213,7 @@ fn main() {
 
                 let num_planets = handler.read::<u32>(selected_object + 0xB4);
 
-                thread::sleep(Duration::from_millis(500));
+                thread::sleep(Duration::from_millis(160));
 
                 handler.click(
                     filter_sort.0,
@@ -315,10 +315,6 @@ fn main() {
                         && vol_class == 3u32
                     || hydrosphere_depth > 6.0f32
                         && (hydrosphere_sum_of_elements / hydrosphere_element_o2) > 0.2f32
-                    || is_a == 1
-                        && (life == 1703936u32 || life == 1075445760u32)
-                        && (vol_class >= 3 || b_vol_class >= 3)
-                        && (b_life == 1703936u32 || b_life == 1075445760u32)
                     || num_planets > 38
                 {
                     writeln!(
@@ -326,7 +322,8 @@ fn main() {
                         r#"RARE: {code}
 ESI: {esi}
 MASS: {}
-HYDROSPHERE_DEPTH: {hydrosphere_depth}"#,
+HYDROSPHERE_DEPTH: {hydrosphere_depth}
+"#,
                         mass / EARTH_MASS
                     );
                 } else {
@@ -335,12 +332,13 @@ HYDROSPHERE_DEPTH: {hydrosphere_depth}"#,
                         r#"COMMON: {code}
 ESI: {esi}
 MASS: {}
-HYDROSPHERE_DEPTH: {hydrosphere_depth}"#,
+HYDROSPHERE_DEPTH: {hydrosphere_depth}
+"#,
                         mass / EARTH_MASS
                     );
                 }
-                break 'inner;
             }
+            break 'inner;
         }
     }
 }
