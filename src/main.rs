@@ -303,7 +303,7 @@ fn main() {
                 // decent A|B Flip,
                 // 0.990+ ESI earth-like,
                 // decent O2 oceans,
-                // and binary earth-likes.
+                // and 38 planets.
                 if esi > 0.9985f32
                     || (0.999995f32..1.00005f32).contains(&mass)
                         && (6370.97f32..6371.31f32).contains(&mean_radius)
@@ -314,7 +314,7 @@ fn main() {
                         && (life == 1703936u32 || life == 1075445760u32)
                         && vol_class == 3u32
                     || hydrosphere_depth > 6.0f32
-                        && (hydrosphere_sum_of_elements / hydrosphere_element_o2) > 0.2f32
+                        && f32::max(hydrosphere_sum_of_elements / hydrosphere_element_o2, 100.0f32) > 0.2f32
                     || num_planets > 38
                 {
                     writeln!(
@@ -322,7 +322,9 @@ fn main() {
                         r#"RARE: {code}
 ESI: {esi}
 MASS: {}
+RADIUS: {mean_radius}
 HYDROSPHERE_DEPTH: {hydrosphere_depth}
+LIFE: {life}
 "#,
                         mass / EARTH_MASS
                     );
@@ -332,7 +334,9 @@ HYDROSPHERE_DEPTH: {hydrosphere_depth}
                         r#"COMMON: {code}
 ESI: {esi}
 MASS: {}
+RADIUS: {mean_radius}
 HYDROSPHERE_DEPTH: {hydrosphere_depth}
+LIFE: {life}
 "#,
                         mass / EARTH_MASS
                     );
