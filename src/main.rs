@@ -4,9 +4,11 @@ use {
     handler::Handler,
     rand::Rng,
     std::{
+        borrow::Cow,
         f32::consts::PI,
         fs::{self, File},
         io::{Read, Write},
+        path::{Path, PathBuf},
         thread,
         time::{Duration, Instant},
     },
@@ -74,7 +76,22 @@ fn main() {
     // This is easier to write 1000 times.
     let base = handler.base();
 
-    let mut log = File::create("hunter.log").unwrap();
+    let lowest = (0..)
+        .skip_while(|&i| {
+            if i == 0 {
+                Path::new("hunter.log").exists()
+            } else {
+                PathBuf::from(format!("hunter-{i}.log")).exists()
+            }
+        })
+        .next()
+        .unwrap();
+    let mut log = File::create(&*if lowest == 0 {
+        Cow::Borrowed("hunter.log")
+    } else {
+        Cow::Owned(format!("hunter-{lowest}.log"))
+    })
+    .unwrap();
 
     loop {
         // Select RG 0-3-397-1581, this is so we can reset the code of the currently
@@ -316,7 +333,10 @@ fn main() {
                         && (life == 1703936u32 || life == 1075445760u32)
                         && vol_class == 3u32
                     || hydrosphere_depth > 6.0f32
-                        && f32::max(hydrosphere_sum_of_elements / hydrosphere_element_o2, 100.0f32) > 0.2f32
+                        && f32::max(
+                            hydrosphere_sum_of_elements / hydrosphere_element_o2,
+                            100.0f32,
+                        ) > 0.2f32
                     || num_planets > 38
                 {
                     writeln!(
