@@ -28,6 +28,7 @@ const SELECTED_OBJECT_CODE: usize = 0x19a9e40usize;
 // Pointer to the parameters of the selected object.
 const SELECTED_OBJECT_POINTER: usize = 0x19a9ec0usize;
 const SELECTED_SYSTEM_POINTER: usize = 0x19a9ec8usize;
+const STAR_BROWSER_SYSTEMS_SEARCHED: usize = 0x1024114usize;
 // Address to the number of Systems found.
 const STAR_BROWSER_SYSTEMS_FOUND: usize = 0x1024118usize;
 // Address to whether the Star browser is currently searching.
@@ -82,7 +83,7 @@ fn main() {
 
         // Not entirely sure how long we need to sleep for, but hwe need to give SE time
         // to update the currently selected object (Or anything helse).
-        thread::sleep(Duration::from_millis(160u64));
+        thread::sleep(Duration::from_millis(50u64));
 
         'inner: loop {
             // Generate a random galaxy
@@ -95,7 +96,7 @@ fn main() {
             handler.write(block, base + SELECTED_OBJECT_CODE + 0x8);
             handler.write(number, base + SELECTED_OBJECT_CODE + 0x10);
 
-            thread::sleep(Duration::from_millis(160u64));
+            thread::sleep(Duration::from_millis(50u64));
 
             let mut selected_object = handler.read::<usize>(base + SELECTED_OBJECT_POINTER);
 
@@ -112,14 +113,14 @@ fn main() {
             let lat = rng.gen_range(-180.0f32..180.0f32);
             // todo!(); if Systems found reducing is fixed, then up max to 0.625. Currently
             // stars aren't dense enough that far out for 100K systems to work
-            let dist = rng.gen_range(0.25f32..0.625f32);
+            let dist = rng.gen_range(0.25f32..0.325f32);
 
             handler.run_script(
                 "goto.se",
-                format!("Goto {{ Lat {} Lon {} Time 0 }}", 90.0f32, lat).as_bytes(),
+                format!("Goto {{ Lat {} Lon {} Time 0 }}", 80.0f32, lat).as_bytes(),
             );
 
-            thread::sleep(Duration::from_millis(160u64));
+            thread::sleep(Duration::from_millis(200u64));
 
             // DistRad and Lat/Lon don't work together with Time 0, for some reason.
             handler.run_script(
@@ -127,7 +128,7 @@ fn main() {
                 format!("Goto {{ DistRad {} Time 0 }}", dist).as_bytes(),
             );
 
-            thread::sleep(Duration::from_millis(160u64));
+            thread::sleep(Duration::from_millis(200u64));
 
             // This is vile
             let gui_scale = handler.read::<f32>(base + GUI_SCALE);
@@ -163,22 +164,26 @@ fn main() {
                 handler.click(clear_button.0, clear_button.1);
             }
 
+            thread::sleep(Duration::from_millis(160u64));
+
             // Click search button
 
             handler.click(search_button.0, search_button.1);
 
-            // Wait 3 seconds, I don't know why but the Star browser has gotten even bugger
-            // in the newest build, and I must do this or else it breaks...
-            thread::sleep(Duration::from_millis(3000u64));
-
             let start = Instant::now();
+            let mut systems_searched = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_SEARCHED);
             let mut systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
 
             while handler.read::<u32>(base + STAR_BROWSER_SEARCHING) == 0u32 {
+                systems_searched = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_SEARCHED);
                 systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
 
-                // Stop waiting after 180s or once Systems found > 22.
-                if start.elapsed() == Duration::from_secs(180u64) || systems_found > 22i32 {
+                if start.elapsed() > Duration::from_secs(2u64) && systems_searched == 0 {
+                    handler.click(clear_button.0, clear_button.1);
+                    break;
+                }
+
+                if start.elapsed() > Duration::from_secs(80u64) {
                     handler.click(clear_button.0, clear_button.1);
 
                     break;
@@ -191,12 +196,8 @@ fn main() {
                 handler.click(filter_toggle.0, filter_toggle.1)
             }
 
-            // Move to filter
-
-            handler.click(filter_sort.0, filter_sort.1);
-
             // Check each system
-            for i in 0i32..=i32::min(systems_found - 1i32, 21i32) {
+            for i in 0i32..=i32::min(systems_found - 1i32, 3i32) {
                 handler.click(
                     filter_sort.0 - 0x40,
                     filter_sort.1 + (i + 1i32) * SYSTEMS_OFFSET,
@@ -212,7 +213,7 @@ fn main() {
                     }
                 }
 
-                thread::sleep(Duration::from_millis(160));
+                thread::sleep(Duration::from_millis(100));
 
                 handler.click(
                     filter_sort.0,
@@ -280,7 +281,7 @@ fn main() {
 
                 handler.run_script("get_name.se", "PrintNames true".as_bytes());
 
-                thread::sleep(Duration::from_millis(500));
+                thread::sleep(Duration::from_millis(200));
 
                 let mut path = handler.exe.as_path().to_path_buf();
                 path.set_file_name("se.log");
