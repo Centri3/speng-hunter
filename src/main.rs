@@ -1,7 +1,9 @@
 mod handler;
 
 use {
+    anyhow::Result,
     handler::Handler,
+    indoc::{formatdoc, writedoc},
     rand::Rng,
     std::{
         borrow::Cow,
@@ -130,6 +132,7 @@ fn main() {
             let lat = rng.gen_range(-180.0f32..180.0f32);
             // todo!(); if Systems found reducing is fixed, then up max to 0.625. Currently
             // stars aren't dense enough that far out for 100K systems to work
+            // let dist = rng.gen_range(0.0375f32..0.0625f32);
             let dist = rng.gen_range(0.25f32..0.325f32);
 
             handler.run_script(
@@ -195,7 +198,7 @@ fn main() {
                 systems_searched = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_SEARCHED);
                 systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
 
-                if start.elapsed() > Duration::from_secs(2u64) && systems_searched == 0 {
+                if start.elapsed() > Duration::from_secs(6u64) && systems_searched == 0 {
                     handler.click(clear_button.0, clear_button.1);
                     break;
                 }
@@ -262,10 +265,23 @@ fn main() {
                     handler.read::<f32>(selected_object + OBJECT_HYDROSPHERE_ELEMENT_O2);
                 let hydrosphere_sum_of_elements =
                     handler.read::<f32>(selected_object + OBJECT_HYDROSPHERE_SUM_OF_ELEMENTS);
-                let is_a = handler.read::<u32>(selected_object + OBJECT_BITFLAGS) & 0x020000000;
+                let is_a = match handler.read::<u32>(selected_object + OBJECT_BITFLAGS)
+                    & 0b00000010000000000000000000000000
+                {
+                    0b00000010000000000000000000000000 => true,
+                    _ => false,
+                };
+                let is_b = match handler.read::<u32>(selected_object + OBJECT_BITFLAGS)
+                    & 0b00000100000000000000000000000000
+                {
+                    0b00000100000000000000000000000000 => true,
+                    _ => false,
+                };
+                let is_binary = is_a | is_b;
                 let b_vol_class = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_VOL_CLASS);
                 let b_life = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_LIFE);
                 let system = handler.read::<usize>(base + SELECTED_SYSTEM_POINTER);
+                let seed = handler.read::<u32>(system + 0x170);
                 let num_planets = handler.read::<u32>(system + 0xB4);
 
                 let polar_radius = equat_radius * (1.0f32 - oblateness);
@@ -296,77 +312,148 @@ fn main() {
                     5.58f32 * n,
                 );
 
-                handler.run_script("get_name.se", "PrintNames true".as_bytes());
+                let code = get_code(&handler);
+                let mut body = vec!["RARE"];
 
-                thread::sleep(Duration::from_millis(200));
+                let high_esi_earthlike = esi > 0.9895f32
+                    && (life == 1703936u32 || life == 1075445760u32)
+                    && vol_class == 3u32;
+                try_add_body(&mut body, high_esi_earthlike, "HIGH_ESI_EARTHLIKE");
+                let high_esi_minigiant = esi > 0.9875 && bulk_class == 5u32;
+                try_add_body(&mut body, high_esi_minigiant, "HIGH_ESI_MINIGIANT");
+                if !high_esi_earthlike && !high_esi_minigiant {
+                    try_add_body(&mut body, esi > 0.9985, "HIGH_ESI")
+                };
+                try_add_body(
+                    &mut body,
+                    (0.999995..=1.00005).contains(&(mass / EARTH_MASS))
+                        && (6370.97f32..=6371.31f32).contains(&mean_radius),
+                    "1M1R",
+                );
+                try_add_body(
+                    &mut body,
+                    is_a && (b_life == 1703936u32 || b_life == 1075445760u32)
+                        && b_vol_class == 3u32,
+                    "BINARY_EARTHLIKES",
+                );
+                try_add_body(
+                    &mut body,
+                    mass / EARTH_MASS > 60.0 && atm_pressure < 1000.0,
+                    "HYPERTERRESTRIAL",
+                );
+                try_add_body(
+                    &mut body,
+                    mass / EARTH_MASS > 25537.0 && atm_pressure > 1000.0,
+                    "AB_FLIP",
+                );
+                try_add_body(
+                    &mut body,
+                    hydrosphere_depth > 6.0f32
+                        && f32::max(hydrosphere_element_o2, 0.0001) / hydrosphere_sum_of_elements
+                            > 0.2f32,
+                    "O2_OCEANS",
+                );
+                try_add_body(
+                    &mut body,
+                    mass / EARTH_MASS < 0.0009 && (2..=8).contains(&vol_class),
+                    "SMALL_NONARID",
+                );
 
-                let mut path = handler.exe.as_path().to_path_buf();
-                path.set_file_name("se.log");
-
-                let code = fs::read_to_string(path)
-                    .unwrap()
-                    .rsplit_once("Body full def:")
-                    .unwrap()
-                    .1
-                    .lines()
-                    .next()
-                    .unwrap()
-                    .to_owned()
-                    .trim()
-                    .to_owned();
-
-                // 0.999+ ESI,
-                // 1 mass 1 radius,
-                // 0.988+ ESI minigiant,
-                // decent Hyperterrestrial,
-                // decent A|B Flip,
-                // 0.990+ ESI earth-like,
-                // decent O2 oceans,
-                // and 38 planets.
-                if esi > 0.9985f32
-                    || (0.999995f32..1.00005f32).contains(&mass)
-                        && (6370.97f32..6371.31f32).contains(&mean_radius)
-                    || esi > 0.9875 && bulk_class == 5u32
-                    || mass / EARTH_MASS > 60.0f32 && atm_pressure < 1000.0f32
-                    || mass / EARTH_MASS > 25537.0f32 && atm_pressure > 1000.0f32
-                    || esi > 0.9895f32
-                        && (life == 1703936u32 || life == 1075445760u32)
-                        && vol_class == 3u32
-                    || hydrosphere_depth > 6.0f32
-                        && f32::max(
-                            hydrosphere_sum_of_elements / hydrosphere_element_o2,
-                            100.0f32,
-                        ) > 0.2f32
-                    || num_planets > 38
-                {
-                    writeln!(
-                        log,
-                        r#"RARE: {code}
-ESI: {esi}
-MASS: {}
-RADIUS: {mean_radius}
-HYDROSPHERE_DEPTH: {hydrosphere_depth}
-LIFE: {life}
-PLANET_COUNT: {num_planets}
-"#,
-                        mass / EARTH_MASS
-                    );
-                } else {
-                    writeln!(
-                        log,
-                        r#"COMMON: {code}
-ESI: {esi}
-MASS: {}
-RADIUS: {mean_radius}
-HYDROSPHERE_DEPTH: {hydrosphere_depth}
-LIFE: {life}
-PLANET_COUNT: {num_planets}
-"#,
-                        mass / EARTH_MASS
-                    );
+                if let [rare_prefix] = &mut *body {
+                    *rare_prefix = "COMMON";
                 }
+
+                writedoc!(
+                    log,
+                    "
+                    {}: {code}
+                    -----
+                    Earth masses:               {}M🜨
+                    Jupiter masses:             {}M♃
+                    Solar masses:               {}M☉
+                    -----
+                    Equatorial radius:          {equat_radius} km
+                    Mean radius:                {mean_radius} km
+                    Polar radius:               {polar_radius} km
+                    -----
+                    Average temperature:        {avg_temp} K
+                    -----
+                    Raw life:                   0b{life}
+                    -----
+                    Atmospheric pressure:       {atm_pressure}
+                    -----
+                    Volatiles class:            \"{}\"
+                    Hydrosphere maximum depth:  {hydrosphere_depth}
+                    O2:                         {}%
+                    -----
+                    Density:                    {density} g/cm³
+                    Escape velocity:            {esc_vel} km/sec
+                    Gravity:                    {gravity} m/sec²
+                    -----
+                    Earth Similarity Index:     {esi}
+                    -----
+                    System's seed:              {seed}
+                    System's number of planets: {num_planets}
+
+
+                    ",
+                    body.join(" + "),
+                    mass / EARTH_MASS,
+                    mass / EARTH_MASS / 317.82838,
+                    mass / EARTH_MASS / 322946.0,
+                    get_volatiles_class(vol_class),
+                    hydrosphere_element_o2 / hydrosphere_sum_of_elements * 100.0,
+                )
+                .unwrap();
             }
             break 'inner;
         }
+    }
+}
+
+fn get_volatiles_class(v: u32) -> &'static str {
+    match v {
+        0 => "airless",
+        1 => "arid",
+        2 => "lacustrine",
+        3 => "marine",
+        4 => "oceanic",
+        5 => "superoceanic",
+
+        // unused
+        6 => "glacial",
+        7 => "superglacial",
+
+        // implementation details
+        8 => "non-arid",
+        9 => "",
+        _ => "any",
+    }
+}
+
+fn get_code(handler: &Handler) -> String {
+    handler.run_script("get_code.se", "PrintNames true".as_bytes());
+
+    thread::sleep(Duration::from_millis(200));
+
+    let mut path = handler.exe.as_path().to_path_buf();
+    path.set_file_name("se.log");
+
+    fs::read_to_string(path)
+        .unwrap()
+        .rsplit_once("Body full def:")
+        .unwrap()
+        .1
+        .lines()
+        .next()
+        .unwrap()
+        .to_owned()
+        .trim()
+        .to_owned()
+}
+
+fn try_add_body(body: &mut Vec<&'static str>, cond: bool, elem: &'static str) {
+    if cond {
+        body.push(elem);
     }
 }

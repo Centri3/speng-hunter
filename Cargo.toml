@@ -4,6 +4,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.86"
 bytemuck = "1.12.3"
 indoc = "1.0.7"
 rand = "0.8.5"
