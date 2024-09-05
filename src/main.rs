@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod handler;
 
 use {
@@ -7,6 +9,7 @@ use {
     rand::Rng,
     std::{
         borrow::Cow,
+        cell::OnceCell,
         f32::consts::PI,
         fs::{self, File},
         io::{Read, Write},
@@ -53,7 +56,7 @@ const OBJECT_OBLATENESS: usize = 0x120cusize;
 const OBJECT_LIFE: usize = 0x11bcusize;
 const OBJECT_ATM_PRESSURE: usize = 0x17d8usize;
 const OBJECT_HYDROSPHERE_DEPTH: usize = 0x15a0usize;
-const OBJECT_HYDROSPHERE_ELEMENT_O2: usize = 0x14dcusize;
+const OBJECT_HYDROSPHERE_ELEMENT_O2: usize = 0x14ecusize;
 const OBJECT_HYDROSPHERE_SUM_OF_ELEMENTS: usize = 0x1590usize;
 const OBJECT_BITFLAGS: usize = 0x11C0usize;
 const GALAXY_TYPE: usize = 0x8usize;
@@ -95,6 +98,14 @@ fn main() {
     })
     .unwrap();
 
+    println!("-----");
+
+    let mut results = 0;
+    // Don't use a `for` loop. We exit the inner loop when it takes too long to
+    // find systems.
+    let mut times_searched = 0;
+    let mut stars_searched = 0;
+
     loop {
         // Select RG 0-3-397-1581, this is so we can reset the code of the currently
         // selected object. If we don't do this, it'll select nothing.
@@ -104,9 +115,9 @@ fn main() {
         // to update the currently selected object (Or anything helse).
         thread::sleep(Duration::from_millis(50u64));
 
-        'inner: loop {
+        'gen_search_check: loop {
             // Generate a random galaxy
-            let level = rng.gen_range(1u32..9u32);
+            let level = rng.gen_range(1u32..=7u32);
             let block = rng.gen_range(0u32..8u32.pow(level));
             let number = rng.gen_range(0u32..2500u32);
 
@@ -124,7 +135,10 @@ fn main() {
             if selected_object == 0usize
                 || (1u32..=8u32).contains(&handler.read::<u32>(selected_object + GALAXY_TYPE))
                 || handler.read::<u32>(selected_object + GALAXY_TYPE) == 16u32
-                || handler.read::<f32>(selected_object + GALAXY_SIZE) != 50000.0f32
+                || handler.read::<f32>(selected_object + GALAXY_SIZE) < 35000.0f32
+            // E0
+            // || !(1u32..=8u32).contains(&handler.read::<u32>(selected_object + GALAXY_TYPE))
+            // || handler.read::<f32>(selected_object + GALAXY_SIZE) < 35000.0f32
             {
                 continue;
             }
@@ -132,6 +146,7 @@ fn main() {
             let lat = rng.gen_range(-180.0f32..180.0f32);
             // todo!(); if Systems found reducing is fixed, then up max to 0.625. Currently
             // stars aren't dense enough that far out for 100K systems to work
+            // let dist = 0.0f32;
             // let dist = rng.gen_range(0.0375f32..0.0625f32);
             let dist = rng.gen_range(0.25f32..0.325f32);
 
@@ -185,29 +200,42 @@ fn main() {
             }
 
             thread::sleep(Duration::from_millis(160u64));
-
-            // Click search button
-
             handler.click(search_button.0, search_button.1);
 
             let start = Instant::now();
-            let mut systems_searched = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_SEARCHED);
-            let mut systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
+            let start_of_search = OnceCell::new();
+            let mut systems_searched = 0;
+
+            thread::sleep(Duration::from_secs(1));
 
             while handler.read::<u32>(base + STAR_BROWSER_SEARCHING) == 0u32 {
                 systems_searched = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_SEARCHED);
-                systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
 
+                if systems_searched > 0 {
+                    _ = start_of_search.set(Instant::now());
+                }
+
+                // 20
                 if start.elapsed() > Duration::from_secs(6u64) && systems_searched == 0 {
                     handler.click(clear_button.0, clear_button.1);
-                    break;
+                    break 'gen_search_check;
                 }
 
-                if start.elapsed() > Duration::from_secs(80u64) {
+                // 3
+                if let Some(s) = start_of_search.get()
+                    && s.elapsed() > Duration::from_secs(180u64)
+                {
                     handler.click(clear_button.0, clear_button.1);
 
                     break;
                 }
+
+                thread::sleep(Duration::from_secs(1));
+            }
+
+            // User probably clicked stop button.
+            if systems_searched == 0 {
+                break 'gen_search_check;
             }
 
             // Double-click filter toggle
@@ -216,8 +244,10 @@ fn main() {
                 handler.click(filter_toggle.0, filter_toggle.1)
             }
 
+            let systems_found = handler.read::<i32>(base + STAR_BROWSER_SYSTEMS_FOUND);
+
             // Check each system
-            for i in 0i32..=i32::min(systems_found - 1i32, 3i32) {
+            for i in 0i32..=i32::min(systems_found - 1i32, 21i32) {
                 handler.click(
                     filter_sort.0 - 0x40,
                     filter_sort.1 + (i + 1i32) * SYSTEMS_OFFSET,
@@ -240,15 +270,20 @@ fn main() {
                     filter_sort.1 + FILTER_OFFSET + (i + 1i32) * SYSTEMS_OFFSET,
                 );
 
-                // Reinitialize selected_object. For some reason, some objects refuse to give
-                // their parameters sometimes, so retry until it works.
                 for _ in 0u32..100u32 {
                     selected_object = handler.read::<usize>(base + SELECTED_OBJECT_POINTER);
 
                     if selected_object != 0usize {
                         break;
                     }
+
+                    thread::sleep(Duration::from_millis(10));
                 }
+
+                // skip black holes for monster stars search
+                // if handler.read::<u16>(selected_object + 0x15DC) == 0x5E80 {
+                //     continue;
+                // }
 
                 // This is also vile
                 let vol_class = handler.read::<u32>(selected_object + OBJECT_VOL_CLASS);
@@ -280,7 +315,16 @@ fn main() {
                 let is_binary = is_a | is_b;
                 let b_vol_class = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_VOL_CLASS);
                 let b_life = handler.read::<u32>(selected_object + 0x36D0 + OBJECT_LIFE);
-                let system = handler.read::<usize>(base + SELECTED_SYSTEM_POINTER);
+                let mut system = handler.read::<usize>(base + SELECTED_SYSTEM_POINTER);
+                for _ in 0u32..100u32 {
+                    system = handler.read::<usize>(base + SELECTED_SYSTEM_POINTER);
+
+                    if system != 0usize {
+                        break;
+                    }
+
+                    thread::sleep(Duration::from_millis(10));
+                }
                 let seed = handler.read::<u32>(system + 0x170);
                 let num_planets = handler.read::<u32>(system + 0xB4);
 
@@ -315,6 +359,13 @@ fn main() {
                 let code = get_code(&handler);
                 let mut body = vec!["RARE"];
 
+                if hydrosphere_depth > 1000000.0 {
+                    continue;
+                }
+
+                let o2 = hydrosphere_element_o2 / hydrosphere_sum_of_elements;
+                let o2 = if o2.is_infinite() { 0.0 } else { o2 };
+
                 let high_esi_earthlike = esi > 0.9895f32
                     && (life == 1703936u32 || life == 1075445760u32)
                     && vol_class == 3u32;
@@ -348,9 +399,7 @@ fn main() {
                 );
                 try_add_body(
                     &mut body,
-                    hydrosphere_depth > 6.0f32
-                        && f32::max(hydrosphere_element_o2, 0.0001) / hydrosphere_sum_of_elements
-                            > 0.2f32,
+                    hydrosphere_depth > 6.0f32 && o2 > 0.2f32,
                     "O2_OCEANS",
                 );
                 try_add_body(
@@ -395,18 +444,35 @@ fn main() {
                     System's seed:              {seed}
                     System's number of planets: {num_planets}
 
-
                     ",
+                    // monster stars stuff
+                    // au {}
+                    // {:e}
                     body.join(" + "),
                     mass / EARTH_MASS,
                     mass / EARTH_MASS / 317.82838,
                     mass / EARTH_MASS / 322946.0,
                     get_volatiles_class(vol_class),
-                    hydrosphere_element_o2 / hydrosphere_sum_of_elements * 100.0,
+                    o2 * 100.0f32,
+                    // mean_radius / 1.495979e+8,
+                    // handler.read::<f32>(selected_object + 0x15B8),
                 )
                 .unwrap();
             }
-            break 'inner;
+
+            // skip these if bad
+            times_searched += 1;
+            stars_searched += systems_searched;
+            results += systems_found;
+
+            println!("ITERATION:      {times_searched}");
+            println!("SEARCHED:       {stars_searched}");
+            println!("RESULTS:        {}", results);
+            println!("RESULTS/SEARCH: {}", results as f64 / times_searched as f64);
+            println!("SYSTEMS/RESULT: {}", stars_searched as f64 / results as f64);
+            println!("-----");
+
+            break 'gen_search_check;
         }
     }
 }
